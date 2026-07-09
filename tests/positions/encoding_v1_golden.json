@@ -1,0 +1,17 @@
+[
+  {
+    "name": "starting_position",
+    "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+    "active_indices": [8, 9, 10, 11, 12, 13, 14, 15, 65, 70, 130, 133, 192, 199, 259, 324, 432, 433, 434, 435, 436, 437, 438, 439, 505, 510, 570, 573, 632, 639, 699, 764, 769, 770, 771, 772]
+  },
+  {
+    "name": "legal_en_passant",
+    "fen": "8/8/8/3pP3/8/8/8/K6k w - d6 0 1",
+    "active_indices": [36, 320, 419, 711, 776]
+  },
+  {
+    "name": "black_perspective_castling",
+    "fen": "r3k2r/8/8/8/8/8/8/R3K2R b Kq - 0 1",
+    "active_indices": [192, 199, 324, 632, 639, 764, 768, 770, 771]
+  }
+]
