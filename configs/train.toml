@@ -1,0 +1,10 @@
+[paths]
+data_dir = "data"
+artifacts_dir = "artifacts"
+
+[runtime]
+seed = 20260713
+hash_mb = 64
+threads = 1
+
+# Model and optimizer settings will be added with Phase 3.
