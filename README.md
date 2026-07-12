@@ -1,6 +1,6 @@
 # `chess_engine_nn` Package Specification
 
-This directory contains the new engine project. Packaging, strict configuration, feature-schema v1, a material evaluator, the `doctor` command, and foundation tests are implemented. Model, search, data, training, and UCI modules below remain planned. See the [project README](../README.md) and [architecture](../.md/architechture.md).
+This directory contains the new engine project. Package foundations and the Phase 2 data pipeline are implemented: PGN sampling, versioned records/manifests, deterministic splits, Stockfish labeling, resumable JSONL shards, and `generate-data`. Model, search, training, and UCI modules remain planned. See the [project README](../README.md) and [architecture](../.md/architechture.md).
 
 ## Responsibility
 
