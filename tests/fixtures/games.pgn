@@ -1,0 +1,19 @@
+[Event "Fixture One"]
+[Site "Local"]
+[Date "2026.07.13"]
+[Round "1"]
+[White "Alpha"]
+[Black "Beta"]
+[Result "1/2-1/2"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 4. Ba4 Nf6 5. O-O Be7 1/2-1/2
+
+[Event "Fixture Two"]
+[Site "Local"]
+[Date "2026.07.13"]
+[Round "2"]
+[White "Gamma"]
+[Black "Delta"]
+[Result "1-0"]
+
+1. d4 d5 2. c4 e6 3. Nc3 Nf6 4. Bg5 Be7 5. e3 O-O 1-0
