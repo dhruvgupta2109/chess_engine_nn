@@ -26,10 +26,12 @@ include = ["chess_engine_nn*"]
 [tool.pytest.ini_options]
 addopts = "-ra"
 testpaths = ["tests"]
+markers = ["stockfish: requires the external Stockfish executable"]
 
 [tool.ruff]
 line-length = 100
 target-version = "py311"
+exclude = ["board.py", "evaluate.py", "game.py", "search.py", "try_neuron.py"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
