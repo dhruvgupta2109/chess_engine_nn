@@ -7,4 +7,19 @@ seed = 20260713
 hash_mb = 64
 threads = 1
 
+[data]
+run_name = "development-v1"
+every_n_plies = 4
+min_ply = 8
+max_positions_per_game = 32
+train_ratio = 90
+validation_ratio = 5
+test_ratio = 5
+
+[stockfish]
+depth = 8
+hash_mb = 64
+threads = 1
+mate_score_cp = 10000
+
 # Match limits and openings will be locked during baseline capture.
