@@ -1,0 +1,10 @@
+[runtime]
+seed = 20260713
+hash_mb = 64
+threads = 1
+model_path = "artifacts/models/phase7-full-2013-01.pt"
+
+[search]
+default_depth = 4
+max_quiescence_depth = 8
+aspiration_window_cp = 50
