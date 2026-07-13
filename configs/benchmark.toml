@@ -36,4 +36,9 @@ draw_band_cp = 50
 device = "cpu"
 num_workers = 0
 
+[search]
+default_depth = 4
+max_quiescence_depth = 8
+aspiration_window_cp = 50
+
 # Match limits and openings will be locked during baseline capture.

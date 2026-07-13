@@ -1,9 +1,12 @@
+import subprocess
+import sys
 from pathlib import Path
 
 import chess
 import pytest
 import torch
 
+from chess_engine_nn.artifacts import state_dict_sha256
 from chess_engine_nn.config import TrainingConfig
 from chess_engine_nn.errors import ModelArtifactError
 from chess_engine_nn.evaluator import load_evaluator
@@ -50,3 +53,20 @@ def test_corrupt_weight_checksum_is_rejected(training_dataset, tmp_path: Path) -
     torch.save(payload, corrupt)
     with pytest.raises(ModelArtifactError, match="checksum"):
         load_evaluator(corrupt)
+
+
+def test_runtime_artifact_contract_does_not_import_training_modules() -> None:
+    state = {"weight": torch.zeros(1)}
+    assert len(state_dict_sha256(state)) == 64
+    process = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            "import sys; import chess_engine_nn.evaluator; "
+            "assert not any(name.startswith('chess_engine_nn.training') for name in sys.modules)",
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert process.returncode == 0, process.stderr

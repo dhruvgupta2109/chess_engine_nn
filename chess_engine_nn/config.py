@@ -46,11 +46,36 @@ class StockfishConfig:
 
 
 @dataclass(frozen=True)
+class TrainingConfig:
+    accumulator_dim: int = 256
+    hidden_dim: int = 32
+    target_cap_cp: int = 10_000
+    batch_size: int = 64
+    learning_rate: float = 0.001
+    epochs: int = 20
+    patience: int = 5
+    checkpoint_every: int = 1
+    huber_delta: float = 0.1
+    draw_band_cp: int = 50
+    device: str = "cpu"
+    num_workers: int = 0
+
+
+@dataclass(frozen=True)
+class SearchConfig:
+    default_depth: int = 4
+    max_quiescence_depth: int = 8
+    aspiration_window_cp: int = 50
+
+
+@dataclass(frozen=True)
 class AppConfig:
     paths: PathsConfig = PathsConfig()
     runtime: RuntimeConfig = RuntimeConfig()
     data: DataConfig = DataConfig()
     stockfish: StockfishConfig = StockfishConfig()
+    training: TrainingConfig = TrainingConfig()
+    search: SearchConfig = SearchConfig()
 
 
 T = TypeVar("T")
@@ -86,18 +111,19 @@ def load_config(path: Path | None = None, *, overrides: dict[str, Any] | None = 
         except tomllib.TOMLDecodeError as error:
             raise ConfigurationError(f"Invalid TOML in {path}: {error}") from error
 
-    unknown_sections = sorted(set(raw) - {"paths", "runtime", "data", "stockfish"})
+    sections = ("paths", "runtime", "data", "stockfish", "training", "search")
+    unknown_sections = sorted(set(raw) - set(sections))
     if unknown_sections:
         raise ConfigurationError(f"Unknown configuration sections: {', '.join(unknown_sections)}")
     if any(
         not isinstance(raw.get(section, {}), dict)
-        for section in ("paths", "runtime", "data", "stockfish")
+        for section in sections
     ):
         raise ConfigurationError("Configuration sections must be TOML tables")
 
     merged = {
         section: dict(raw.get(section, {}))
-        for section in ("paths", "runtime", "data", "stockfish")
+        for section in sections
     }
     for dotted_key, value in (overrides or {}).items():
         try:
@@ -113,6 +139,8 @@ def load_config(path: Path | None = None, *, overrides: dict[str, Any] | None = 
         runtime=_build_section(RuntimeConfig, merged["runtime"], "runtime"),
         data=_build_section(DataConfig, merged["data"], "data"),
         stockfish=_build_section(StockfishConfig, merged["stockfish"], "stockfish"),
+        training=_build_section(TrainingConfig, merged["training"], "training"),
+        search=_build_section(SearchConfig, merged["search"], "search"),
     )
     _validate(config)
     return config
@@ -146,3 +174,26 @@ def _validate(config: AppConfig) -> None:
         raise ConfigurationError("stockfish hash_mb and threads must be positive")
     if config.stockfish.mate_score_cp <= 0:
         raise ConfigurationError("stockfish.mate_score_cp must be positive")
+    training = config.training
+    integer_positive = (
+        training.accumulator_dim,
+        training.hidden_dim,
+        training.target_cap_cp,
+        training.batch_size,
+        training.epochs,
+        training.checkpoint_every,
+    )
+    if min(integer_positive) <= 0:
+        raise ConfigurationError(
+            "training dimensions, batch size, epochs, and cap must be positive"
+        )
+    if training.patience < 0 or training.num_workers < 0 or training.draw_band_cp < 0:
+        raise ConfigurationError("training patience, workers, and draw band cannot be negative")
+    if training.learning_rate <= 0 or training.huber_delta <= 0:
+        raise ConfigurationError("training learning_rate and huber_delta must be positive")
+    if training.device not in {"cpu", "mps"}:
+        raise ConfigurationError("training.device must be 'cpu' or 'mps'")
+    if config.search.default_depth <= 0 or config.search.max_quiescence_depth < 0:
+        raise ConfigurationError("search depths are invalid")
+    if config.search.aspiration_window_cp <= 0:
+        raise ConfigurationError("search.aspiration_window_cp must be positive")

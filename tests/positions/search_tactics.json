@@ -1,0 +1,20 @@
+[
+  {
+    "id": "mate_in_one",
+    "fen": "7k/5Q2/6K1/8/8/8/8/8 w - - 0 1",
+    "depth": 2,
+    "best_move": "f7e8"
+  },
+  {
+    "id": "win_hanging_queen",
+    "fen": "7k/8/8/8/8/8/q7/R6K w - - 0 1",
+    "depth": 1,
+    "best_move": "a1a2"
+  },
+  {
+    "id": "promote_to_queen",
+    "fen": "7k/P7/8/8/8/8/8/7K w - - 0 1",
+    "depth": 1,
+    "best_move": "a7a8q"
+  }
+]

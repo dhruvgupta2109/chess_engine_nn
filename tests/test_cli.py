@@ -69,3 +69,28 @@ def test_training_evaluation_and_export_commands(training_dataset, tmp_path: Pat
     exported = json.loads(capsys.readouterr().out)
     assert exported["model"] == str(model_path)
     assert model_path.is_file()
+    assert (
+        main(
+            [
+                "--config",
+                "configs/dev.toml",
+                "search",
+                "--model",
+                str(model_path),
+                "--depth",
+                "1",
+                "--json",
+            ]
+        )
+        == 0
+    )
+    searched = json.loads(capsys.readouterr().out)
+    assert searched["best_move"]
+
+
+def test_search_command_returns_legal_move(capsys) -> None:
+    assert main(["--config", "configs/dev.toml", "search", "--depth", "1", "--json"]) == 0
+    result = json.loads(capsys.readouterr().out)
+    assert result["best_move"]
+    assert result["depth"] == 1
+    assert result["nodes"] > 0

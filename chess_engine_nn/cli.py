@@ -17,7 +17,19 @@ from chess_engine_nn.data.generate import generate_dataset
 from chess_engine_nn.data.label import StockfishTeacher
 from chess_engine_nn.encoding import FEATURE_COUNT, FEATURE_SCHEMA_VERSION
 from chess_engine_nn.errors import ChessEngineError
+from chess_engine_nn.evaluator import MaterialEvaluator, load_evaluator
+from chess_engine_nn.model import ModelConfig, NnueValueNetwork
 from chess_engine_nn.reproducibility import seed_everything
+from chess_engine_nn.search import SearchEngine
+from chess_engine_nn.time_control import SearchLimits
+from chess_engine_nn.training.dataset import JsonlPositionDataset
+from chess_engine_nn.training.export import export_checkpoint
+from chess_engine_nn.training.train import (
+    evaluate_dataset,
+    load_checkpoint,
+    resolve_device,
+    train_model,
+)
 
 
 def _path_report(path: Path) -> dict[str, object]:
@@ -80,6 +92,29 @@ def build_parser() -> argparse.ArgumentParser:
     generate.add_argument("--pgn", type=Path, nargs="+", required=True, help="input PGN files")
     generate.add_argument("--output", type=Path, help="dataset run directory")
     generate.add_argument("--json", action="store_true", help="emit one JSON result")
+    train = subparsers.add_parser("train", help="train or resume the neural evaluator")
+    train.add_argument("--dataset", type=Path, help="dataset run directory")
+    train.add_argument("--output", type=Path, help="checkpoint output directory")
+    train.add_argument("--resume", type=Path, help="last checkpoint to resume")
+    train.add_argument("--json", action="store_true", help="emit one JSON result")
+    evaluate = subparsers.add_parser("evaluate-model", help="evaluate a checkpoint split")
+    evaluate.add_argument("--dataset", type=Path, help="dataset run directory")
+    evaluate.add_argument("--checkpoint", type=Path, required=True)
+    evaluate.add_argument("--split", choices=("validation", "test"), default="validation")
+    evaluate.add_argument("--json", action="store_true", help="emit one JSON result")
+    export = subparsers.add_parser("export", help="export an inference-only model")
+    export.add_argument("--checkpoint", type=Path, required=True)
+    export.add_argument("--output", type=Path, required=True)
+    export.add_argument("--json", action="store_true", help="emit one JSON result")
+    search = subparsers.add_parser(
+        "search", help="search one FEN with neural or material evaluation"
+    )
+    search.add_argument("--fen", default=chess.STARTING_FEN)
+    search.add_argument("--model", type=Path, help="inference-only model artifact")
+    search.add_argument("--depth", type=int)
+    search.add_argument("--nodes", type=int)
+    search.add_argument("--movetime", type=int, help="move time in milliseconds")
+    search.add_argument("--json", action="store_true", help="emit one JSON result")
     return parser
 
 
@@ -100,6 +135,103 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"PyTorch available: {report['torch_available']}")
                 print(f"Stockfish: {report['stockfish'] or 'not found (optional in Phase 1)'}")
                 print(f"Feature schema: v{FEATURE_SCHEMA_VERSION} ({FEATURE_COUNT} features)")
+            return 0
+        if args.command == "train":
+            dataset = args.dataset or config.paths.data_dir / "processed" / config.data.run_name
+            output = (
+                args.output
+                or config.paths.artifacts_dir / "checkpoints" / config.data.run_name
+            )
+            trained = train_model(
+                dataset, output, config.training, seed=config.runtime.seed, resume=args.resume
+            )
+            result = {
+                "ok": True,
+                "best_checkpoint": str(trained.best_checkpoint),
+                "last_checkpoint": str(trained.last_checkpoint),
+                "best_epoch": trained.best_epoch,
+                "epochs_completed": trained.epochs_completed,
+                "best_validation_loss": trained.best_validation_loss,
+            }
+            if args.json:
+                print(json.dumps(result, sort_keys=True))
+            else:
+                print(f"Training complete: {trained.epochs_completed} epochs")
+                print(f"Best checkpoint: {trained.best_checkpoint}")
+                print(f"Best validation loss: {trained.best_validation_loss:.6f}")
+            return 0
+        if args.command == "evaluate-model":
+            dataset_dir = (
+                args.dataset or config.paths.data_dir / "processed" / config.data.run_name
+            )
+            checkpoint = load_checkpoint(args.checkpoint)
+            model_config = ModelConfig.from_dict(checkpoint["model_config"])
+            model = NnueValueNetwork(model_config)
+            model.load_state_dict(checkpoint["model_state"])
+            device = resolve_device(config.training.device)
+            model.to(device)
+            dataset = JsonlPositionDataset(
+                dataset_dir, args.split, target_cap_cp=model_config.target_cap_cp
+            )
+            loss, metrics = evaluate_dataset(
+                model,
+                dataset,
+                batch_size=config.training.batch_size,
+                device=device,
+                huber_delta=config.training.huber_delta,
+                draw_band_cp=config.training.draw_band_cp,
+            )
+            result = {"ok": True, "split": args.split, "loss": loss, **metrics.to_dict()}
+            print(json.dumps(result, sort_keys=True) if args.json else json.dumps(result, indent=2))
+            return 0
+        if args.command == "export":
+            exported = export_checkpoint(args.checkpoint, args.output)
+            result = {"ok": True, "model": str(exported)}
+            message = (
+                json.dumps(result, sort_keys=True)
+                if args.json
+                else f"Exported model: {exported}"
+            )
+            print(message)
+            return 0
+        if args.command == "search":
+            try:
+                board = chess.Board(args.fen)
+            except ValueError as error:
+                raise ChessEngineError(f"Invalid search FEN: {error}") from error
+            model_path = args.model or config.runtime.model_path
+            evaluator = load_evaluator(model_path) if model_path else MaterialEvaluator()
+            engine = SearchEngine(
+                evaluator,
+                hash_mb=config.runtime.hash_mb,
+                max_quiescence_depth=config.search.max_quiescence_depth,
+                aspiration_window_cp=config.search.aspiration_window_cp,
+            )
+            limits = SearchLimits(
+                depth=args.depth
+                if args.depth is not None
+                else None
+                if args.nodes is not None or args.movetime is not None
+                else config.search.default_depth,
+                nodes=args.nodes,
+                move_time_ms=args.movetime,
+            )
+            searched = engine.search(board, limits)
+            result = {
+                "ok": True,
+                "best_move": searched.best_move.uci() if searched.best_move else None,
+                "score_cp": searched.score_cp,
+                "mate_in": searched.mate_in,
+                "depth": searched.depth,
+                "seldepth": searched.seldepth,
+                "nodes": searched.nodes,
+                "nps": searched.nps,
+                "elapsed_ms": searched.elapsed_ms,
+                "completed": searched.completed,
+                "transposition_hits": searched.transposition_hits,
+                "pv": [move.uci() for move in searched.principal_variation],
+            }
+            print(json.dumps(result, sort_keys=True) if args.json else json.dumps(result, indent=2))
             return 0
         if args.command == "generate-data":
             configured = config.stockfish.executable or config.paths.stockfish_path

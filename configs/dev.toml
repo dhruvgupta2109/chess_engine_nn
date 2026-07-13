@@ -35,3 +35,8 @@ huber_delta = 0.1
 draw_band_cp = 50
 device = "cpu"
 num_workers = 0
+
+[search]
+default_depth = 3
+max_quiescence_depth = 6
+aspiration_window_cp = 50

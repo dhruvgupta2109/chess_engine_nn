@@ -15,3 +15,7 @@ class EncodingError(ChessEngineError):
 
 class ModelArtifactError(ChessEngineError):
     """Raised when a model artifact is corrupt or incompatible."""
+
+
+class UCIProtocolError(ChessEngineError):
+    """Raised when a UCI command cannot be parsed or applied safely."""

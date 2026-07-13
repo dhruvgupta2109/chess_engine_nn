@@ -1,6 +1,6 @@
 # `chess_engine_nn` Package Specification
 
-This directory contains the new engine project. Phases 1–3 are implemented: package foundations, the Stockfish-supervised data pipeline, the NNUE-style value model, deterministic training/checkpoints/metrics, inference export, and model loading. Search and UCI modules remain planned. See the [project README](../README.md) and [architecture](../.md/architechture.md).
+This directory contains the new engine project. Phases 1–5 are implemented: package/data foundations, neural training/export, model loading, single-threaded iterative neural search, and asynchronous UCI with clock management. See the [project README](../README.md) and [architecture](../.md/architechture.md).
 
 ## Responsibility
 
@@ -64,7 +64,10 @@ python -m chess_engine_nn.cli export
 python -m chess_engine_nn.cli search
 python -m chess_engine_nn.cli benchmark
 python -m chess_engine_nn.uci --model PATH
+chess-engine-nn-uci --model PATH
 ```
+
+UCI supports `uci`, `isready`, `ucinewgame`, `position`, `go`, `stop`, `setoption`, and `quit`; direct depth/node/movetime limits and standard clock/increment/moves-to-go fields feed the shared `SearchLimits`. Options are `ModelPath`, `Hash`, `Threads` (v1 requires `1`), and `Seed`. Startup without a model remains intentionally unready, and diagnostics never use protocol stdout.
 
 ## Artifacts
 
