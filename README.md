@@ -1,12 +1,12 @@
 # `chess_engine_nn` Package Specification
 
-This directory contains the new engine project. Package foundations and the Phase 2 data pipeline are implemented: PGN sampling, versioned records/manifests, deterministic splits, Stockfish labeling, resumable JSONL shards, and `generate-data`. Model, search, training, and UCI modules remain planned. See the [project README](../README.md) and [architecture](../.md/architechture.md).
+This directory contains the new engine project. Phases 1–3 are implemented: package foundations, the Stockfish-supervised data pipeline, the NNUE-style value model, deterministic training/checkpoints/metrics, inference export, and model loading. Search and UCI modules remain planned. See the [project README](../README.md) and [architecture](../.md/architechture.md).
 
 ## Responsibility
 
 The package owns shared encoding, NNUE model/inference, alpha-beta search, UCI, offline PGN/Stockfish data generation, training, metrics, export, configuration, errors, and CLI. It owns neither a UI nor chess rules; `python-chess` supplies board state and legal moves.
 
-## Planned modules
+## Package modules
 
 ```text
 __init__.py          version and small public exports
@@ -31,7 +31,7 @@ Legacy top-level modules are not dependencies.
 class FeatureEncoder:
     schema_version: int
     def active_indices(self, board: chess.Board) -> numpy.ndarray: ...
-    def encode_batch(self, boards: Sequence[chess.Board]) -> torch.Tensor: ...
+    def encode_batch(self, boards: Sequence[chess.Board]) -> numpy.ndarray: ...
 
 class PositionEvaluator(Protocol):
     def evaluate(self, board: chess.Board) -> int: ...
