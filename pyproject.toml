@@ -11,10 +11,11 @@ requires-python = ">=3.11"
 dependencies = [
   "numpy>=1.26,<3",
   "python-chess>=1.999,<2",
+  "torch>=2.2,<3",
 ]
 
 [project.optional-dependencies]
-training = ["torch>=2.2,<3"]
+training = []
 dev = ["pytest>=8,<10", "ruff>=0.5,<1"]
 
 [project.scripts]
