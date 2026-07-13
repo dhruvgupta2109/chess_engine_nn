@@ -22,4 +22,18 @@ hash_mb = 64
 threads = 1
 mate_score_cp = 10000
 
+[training]
+accumulator_dim = 256
+hidden_dim = 32
+target_cap_cp = 10000
+batch_size = 64
+learning_rate = 0.001
+epochs = 20
+patience = 5
+checkpoint_every = 1
+huber_delta = 0.1
+draw_band_cp = 50
+device = "cpu"
+num_workers = 0
+
 # Match limits and openings will be locked during baseline capture.
