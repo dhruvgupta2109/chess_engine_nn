@@ -1,6 +1,6 @@
 # `chess_engine_nn` Package Specification
 
-This directory contains the new engine project. Phases 1–6 are implemented: package/data foundations, neural training/export, model loading, single-threaded iterative neural search, asynchronous UCI, and measured CPU profiling/optimization. See the [project README](../README.md), [architecture](../.md/architechture.md), and [Phase 6 report](../.md/Phase6.md).
+This directory contains the release-validated v1 engine. Phases 1–7 are implemented: package/data foundations, neural training/export, model loading, single-threaded iterative neural search, asynchronous UCI, measured CPU optimization, candidate training, and controlled release benchmarking. See the [project README](../README.md), [architecture](../.md/architechture.md), and [Phase 7 report](../.md/Phase7.md).
 
 ## Responsibility
 
@@ -66,6 +66,7 @@ python -m chess_engine_nn.cli benchmark
 python -m chess_engine_nn.uci --model PATH
 chess-engine-nn-uci --model PATH
 python tools/benchmark_phase6.py --output artifacts/reports/phase6-reference.json
+python tools/run_legacy_match.py --model artifacts/models/phase7-full-2013-01.pt --output artifacts/reports/phase7-legacy-match
 ```
 
 UCI supports `uci`, `isready`, `ucinewgame`, `position`, `go`, `stop`, `setoption`, and `quit`; direct depth/node/movetime limits and standard clock/increment/moves-to-go fields feed the shared `SearchLimits`. Options are `ModelPath`, `Hash`, `Threads` (v1 requires `1`), and `Seed`. Startup without a model remains intentionally unready, and diagnostics never use protocol stdout.
@@ -79,6 +80,11 @@ UCI supports `uci`, `isready`, `ucinewgame`, `position`, `go`, `stop`, `setoptio
 - Metrics/matches/profiles: `artifacts/reports/`
 
 These are ignored except tiny fixtures/config examples. Artifacts carry schema/configuration/provenance/checksum metadata.
+
+The reference release model is `artifacts/models/phase7-full-2013-01.pt`, with file SHA-256
+`7f0514f09bd1e84091e7fbf852412b6f86b80c41d240a9c7b5db166a031a8387`. It is ignored
+from Git and must be retained or distributed separately. `configs/release.toml` points local
+CLI searches at that artifact.
 
 ## Dependency direction
 
@@ -94,4 +100,4 @@ Training may import encoding/model. Runtime cannot import PGN readers, Stockfish
 
 ## Ready definition
 
-V1 is ready when it installs on Python 3.11, passes unit/integration/tactical/UCI tests, loads a validated CPU model, respects limits, returns only legal moves, and passes the [PRD baseline match](../.md/prd.md).
+V1 meets the ready definition: it installs on Python 3.11, passes unit/integration/tactical/UCI tests, loads the validated CPU model, respects limits, returns only legal moves, and passed the [PRD baseline match](../.md/Phase7.md).
