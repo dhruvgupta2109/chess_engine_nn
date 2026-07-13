@@ -1,2 +1,3 @@
+recursive-include configs *.toml
 recursive-include tests *.epd *.json *.pgn
 recursive-include tools *.py
