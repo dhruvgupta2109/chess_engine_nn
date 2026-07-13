@@ -1,6 +1,6 @@
 # `chess_engine_nn` Package Specification
 
-This directory contains the new engine project. Phases 1–5 are implemented: package/data foundations, neural training/export, model loading, single-threaded iterative neural search, and asynchronous UCI with clock management. See the [project README](../README.md) and [architecture](../.md/architechture.md).
+This directory contains the new engine project. Phases 1–6 are implemented: package/data foundations, neural training/export, model loading, single-threaded iterative neural search, asynchronous UCI, and measured CPU profiling/optimization. See the [project README](../README.md), [architecture](../.md/architechture.md), and [Phase 6 report](../.md/Phase6.md).
 
 ## Responsibility
 
@@ -65,6 +65,7 @@ python -m chess_engine_nn.cli search
 python -m chess_engine_nn.cli benchmark
 python -m chess_engine_nn.uci --model PATH
 chess-engine-nn-uci --model PATH
+python tools/benchmark_phase6.py --output artifacts/reports/phase6-reference.json
 ```
 
 UCI supports `uci`, `isready`, `ucinewgame`, `position`, `go`, `stop`, `setoption`, and `quit`; direct depth/node/movetime limits and standard clock/increment/moves-to-go fields feed the shared `SearchLimits`. Options are `ModelPath`, `Hash`, `Threads` (v1 requires `1`), and `Seed`. Startup without a model remains intentionally unready, and diagnostics never use protocol stdout.

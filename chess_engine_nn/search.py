@@ -1,9 +1,9 @@
 """Iterative-deepening neural negamax search."""
 
-from collections.abc import Callable
-from dataclasses import dataclass
 import threading
 import time
+from collections.abc import Callable
+from dataclasses import dataclass
 
 import chess
 
@@ -205,10 +205,12 @@ class SearchEngine:
         if (
             board.is_stalemate()
             or board.is_insufficient_material()
-            or board.is_fifty_moves()
-            or board.can_claim_fifty_moves()
-            or board.is_repetition(3)
-            or board.can_claim_threefold_repetition()
+            or (board.halfmove_clock >= 100 and board.is_fifty_moves())
+            or (board.halfmove_clock >= 99 and board.can_claim_fifty_moves())
+            # A claim by the next move needs at least seven reversible plies:
+            # two occurrences require a four-ply cycle, then three more plies
+            # can put the side to move one move away from the third occurrence.
+            or (board.halfmove_clock >= 7 and board.can_claim_threefold_repetition())
         ):
             return 0
         return None
@@ -227,7 +229,9 @@ class SearchEngine:
 
         original_alpha = alpha
         key = position_hash(board)
-        entry = None if board.is_repetition(2) or board.halfmove_clock >= 90 else self.table.probe(key)
+        repetition_sensitive = board.halfmove_clock >= 4 and board.is_repetition(2)
+        table_safe = board.halfmove_clock < 90 and not repetition_sensitive
+        entry = self.table.probe(key) if table_safe else None
         if entry is not None and entry.depth >= depth:
             self.transposition_hits += 1
             entry_score = score_from_transposition(entry.score, ply)
@@ -243,7 +247,9 @@ class SearchEngine:
         best_score = -INFINITY
         best_move: chess.Move | None = None
         best_pv: tuple[chess.Move, ...] = ()
-        moves = self._ordered_moves(board, list(board.legal_moves), entry.best_move if entry else None, ply)
+        moves = self._ordered_moves(
+            board, list(board.legal_moves), entry.best_move if entry else None, ply
+        )
         for move in moves:
             is_quiet = not board.is_capture(move) and move.promotion is None
             board.push(move)
@@ -271,7 +277,7 @@ class SearchEngine:
             if best_score >= beta
             else BoundType.EXACT
         )
-        if not (board.is_repetition(2) or board.halfmove_clock >= 90):
+        if table_safe:
             self.table.store(
                 TranspositionEntry(
                     key,
@@ -284,9 +290,7 @@ class SearchEngine:
             )
         return best_score, best_pv
 
-    def _quiescence(
-        self, board: chess.Board, alpha: int, beta: int, ply: int, qdepth: int
-    ) -> int:
+    def _quiescence(self, board: chess.Board, alpha: int, beta: int, ply: int, qdepth: int) -> int:
         self._check_stop()
         self.nodes += 1
         self.seldepth = max(self.seldepth, ply)
@@ -307,9 +311,15 @@ class SearchEngine:
             score = int(self.evaluator.evaluate(board))
             return max(-MATE_THRESHOLD + 1, min(MATE_THRESHOLD - 1, score))
 
-        moves = list(board.legal_moves) if in_check else [
-            move for move in board.legal_moves if board.is_capture(move) or move.promotion is not None
-        ]
+        moves = (
+            list(board.legal_moves)
+            if in_check
+            else [
+                move
+                for move in board.legal_moves
+                if board.is_capture(move) or move.promotion is not None
+            ]
+        )
         moves = self._ordered_moves(board, moves, None, ply)
         for move in moves:
             board.push(move)

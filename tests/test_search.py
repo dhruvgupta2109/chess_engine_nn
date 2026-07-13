@@ -11,6 +11,7 @@ from chess_engine_nn.search import (
     score_to_transposition,
 )
 from chess_engine_nn.time_control import SearchLimits
+from chess_engine_nn.transposition import position_hash
 
 
 class CountingEvaluator(MaterialEvaluator):
@@ -53,6 +54,34 @@ def test_threefold_history_is_scored_as_draw_and_preserved() -> None:
     assert result.score_cp == 0
     assert result.best_move is None
     assert board.move_stack == before
+
+
+def test_threefold_claim_by_next_move_is_scored_as_draw() -> None:
+    board = chess.Board()
+    for move in ("g1f3", "g8f6", "f3g1", "f6g8", "g1f3", "g8f6", "f3g1"):
+        board.push_uci(move)
+    assert board.halfmove_clock == 7
+    assert board.can_claim_threefold_repetition()
+    before = list(board.move_stack)
+
+    result = SearchEngine(MaterialEvaluator(), hash_mb=1).search(board, SearchLimits(depth=2))
+
+    assert result.score_cp == 0
+    assert result.best_move is None
+    assert board.move_stack == before
+
+
+def test_repetition_sensitive_position_is_not_stored_in_transposition_table() -> None:
+    board = chess.Board()
+    for move in ("g1f3", "g8f6", "f3g1", "f6g8"):
+        board.push_uci(move)
+    assert board.is_repetition(2)
+    engine = SearchEngine(MaterialEvaluator(), hash_mb=1)
+
+    result = engine.search(board, SearchLimits(depth=1))
+
+    assert result.best_move in board.legal_moves
+    assert engine.table.probe(position_hash(board)) is None
 
 
 def test_search_returns_legal_move_and_preserves_board_history() -> None:

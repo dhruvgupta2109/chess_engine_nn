@@ -1,4 +1,5 @@
 import json
+import random
 from pathlib import Path
 
 import chess
@@ -91,3 +92,39 @@ def test_feature_schema_v1_matches_golden_fixtures() -> None:
     for fixture in fixtures:
         actual = encoder.active_indices(chess.Board(fixture["fen"])).tolist()
         assert actual == fixture["active_indices"], fixture["name"]
+
+
+def test_bitboard_encoder_matches_piece_map_reference_across_seeded_game() -> None:
+    rng = random.Random(20260713)
+    encoder = FeatureEncoder()
+    board = chess.Board()
+
+    for _ in range(100):
+        perspective = board.turn
+        expected = []
+        for square, piece in board.piece_map().items():
+            relation = 0 if piece.color == perspective else 6
+            plane = relation + piece.piece_type - 1
+            canonical = square if perspective == chess.WHITE else chess.square_mirror(square)
+            expected.append(plane * 64 + canonical)
+        if board.turn == chess.BLACK:
+            expected.append(SIDE_TO_MOVE_INDEX)
+        castling = (
+            board.has_kingside_castling_rights(perspective),
+            board.has_queenside_castling_rights(perspective),
+            board.has_kingside_castling_rights(not perspective),
+            board.has_queenside_castling_rights(not perspective),
+        )
+        expected.extend(
+            CASTLING_OFFSET + offset for offset, active in enumerate(castling) if active
+        )
+        if board.has_legal_en_passant() and board.ep_square is not None:
+            expected.append(EN_PASSANT_OFFSET + chess.square_file(board.ep_square))
+
+        assert encoder.active_indices(board).tolist() == sorted(expected)
+
+        legal_moves = sorted(board.legal_moves, key=lambda move: move.uci())
+        if not legal_moves:
+            board.reset()
+        else:
+            board.push(legal_moves[rng.randrange(len(legal_moves))])

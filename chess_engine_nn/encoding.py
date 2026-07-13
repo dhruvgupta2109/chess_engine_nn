@@ -34,11 +34,13 @@ class FeatureEncoder:
 
         perspective = board.turn
         indices: list[int] = []
-        for square, piece in board.piece_map().items():
-            relation = 0 if piece.color == perspective else 6
-            plane = relation + piece.piece_type - 1
-            canonical_square = square if perspective == chess.WHITE else chess.square_mirror(square)
-            indices.append(plane * 64 + canonical_square)
+        for relation, color in ((0, perspective), (6, not perspective)):
+            for piece_type in chess.PIECE_TYPES:
+                plane = relation + piece_type - 1
+                for square in chess.scan_forward(board.pieces_mask(piece_type, color)):
+                    # ``square_mirror(square)`` is equivalent to ``square ^ 56``.
+                    canonical_square = square if perspective == chess.WHITE else square ^ 56
+                    indices.append(plane * 64 + canonical_square)
 
         # Preserve original side to move even though the piece representation is canonical.
         if board.turn == chess.BLACK:
@@ -60,8 +62,6 @@ class FeatureEncoder:
         encoded = np.asarray(sorted(indices), dtype=np.int64)
         if encoded.size and (encoded[0] < 0 or encoded[-1] >= FEATURE_COUNT):
             raise EncodingError("Encoder produced an out-of-range feature index")
-        if encoded.size != np.unique(encoded).size:
-            raise EncodingError("Encoder produced duplicate feature indices")
         return encoded
 
     def encode_dense(self, board: chess.Board) -> np.ndarray:

@@ -58,13 +58,16 @@ class TorchPositionEvaluator:
         if not isinstance(model, NnueValueNetwork):
             raise TypeError("TorchPositionEvaluator requires NnueValueNetwork")
         self.device = torch.device(device)
-        self.model = model.to(self.device).eval()
+        self.model = model.to(self.device).eval().requires_grad_(False)
         from chess_engine_nn.encoding import FeatureEncoder
 
         self.encoder = FeatureEncoder()
 
     def evaluate(self, board: chess.Board) -> int:
-        return int(self.evaluate_batch([board])[0])
+        features = torch.from_numpy(self.encoder.encode_dense(board)).to(self.device)
+        with torch.inference_mode():
+            score = self.model.to_centipawns(self.model(features))
+        return int(score.item())
 
     def evaluate_batch(self, boards: Sequence[chess.Board]) -> np.ndarray:
         if not boards:
