@@ -16,14 +16,22 @@ dependencies = [
 
 [project.optional-dependencies]
 training = []
+web = [
+  "fastapi>=0.139,<1",
+  "uvicorn>=0.48,<1",
+]
 dev = ["pytest>=8,<10", "ruff>=0.5,<1"]
 
 [project.scripts]
 chess-engine-nn = "chess_engine_nn.cli:main"
 chess-engine-nn-uci = "chess_engine_nn.uci:main"
+chess-engine-nn-web = "chess_engine_nn.web_api.__main__:main"
 
 [tool.setuptools.packages.find]
 include = ["chess_engine_nn*"]
+
+[tool.setuptools.package-data]
+"chess_engine_nn.web_api" = ["static/**/*"]
 
 [tool.pytest.ini_options]
 addopts = "-ra"

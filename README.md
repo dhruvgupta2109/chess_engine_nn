@@ -1,10 +1,16 @@
 # `chess_engine_nn` Package Specification
 
-This directory contains the release-validated v1 engine. Phases 1–7 are implemented: package/data foundations, neural training/export, model loading, single-threaded iterative neural search, asynchronous UCI, measured CPU optimization, candidate training, and controlled release benchmarking. See the [project README](../README.md), [architecture](../.md/architechture.md), and [Phase 7 report](../.md/Phase7.md).
+This directory contains the release-validated v1 engine and the implemented Phase 8 local web
+adapter. Phases 1–7 cover the engine and release; Phase 8 adds a packaged React website and thin
+FastAPI game service without changing the frozen model or search contracts. See the
+[project README](../README.md), [architecture](../.md/architechture.md), [Phase 7 report](../.md/Phase7.md),
+and [Phase 8 plan/status](../.md/Phase8.md).
 
 ## Responsibility
 
-The package owns shared encoding, NNUE model/inference, alpha-beta search, UCI, offline PGN/Stockfish data generation, training, metrics, export, configuration, errors, and CLI. It owns neither a UI nor chess rules; `python-chess` supplies board state and legal moves.
+The package owns shared encoding, NNUE model/inference, alpha-beta search, UCI, the optional local
+web adapter, offline PGN/Stockfish data generation, training, metrics, export, configuration,
+errors, and CLI. `python-chess` remains the sole owner of board state and legal moves.
 
 ## Package modules
 
@@ -19,6 +25,7 @@ search.py            iterative negamax and quiescence
 time_control.py      budgets and cancellation
 transposition.py     bounded table and replacement
 uci.py               UCI adapter/search worker
+web_api/              local REST/WebSocket game service and packaged website
 data/                PGN, Stockfish labels, records, splits
 training/            datasets, training, metrics, export
 ```
@@ -65,11 +72,18 @@ python -m chess_engine_nn.cli search
 python -m chess_engine_nn.cli benchmark
 python -m chess_engine_nn.uci --model PATH
 chess-engine-nn-uci --model PATH
+python -m chess_engine_nn.web_api --model PATH
+chess-engine-nn-web --model PATH
 python tools/benchmark_phase6.py --output artifacts/reports/phase6-reference.json
 python tools/run_legacy_match.py --model artifacts/models/phase7-full-2013-01.pt --output artifacts/reports/phase7-legacy-match
 ```
 
 UCI supports `uci`, `isready`, `ucinewgame`, `position`, `go`, `stop`, `setoption`, and `quit`; direct depth/node/movetime limits and standard clock/increment/moves-to-go fields feed the shared `SearchLimits`. Options are `ModelPath`, `Hash`, `Threads` (v1 requires `1`), and `Seed`. Startup without a model remains intentionally unready, and diagnostics never use protocol stdout.
+
+The web launcher is an optional local-only interface. Install it with `python3 -m pip install -e
+".[web]"`, then run `chess-engine-nn-web --model
+artifacts/models/phase7-full-2013-01.pt`. It binds to loopback by default, serves the compiled
+Aurora Glass frontend, and runs neural searches in a cancellable background worker.
 
 ## Artifacts
 

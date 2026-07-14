@@ -1,3 +1,4 @@
 recursive-include configs *.toml
+recursive-include chess_engine_nn/web_api/static *
 recursive-include tests *.epd *.json *.pgn
 recursive-include tools *.py
